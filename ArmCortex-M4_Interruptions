@@ -1,0 +1,70 @@
+#include<stdint.h>
+#include<stdio.h>
+
+#define IRQNUM_USART1 37
+#define IRQNUM_TIM3 29
+
+/* NVIC register addresses. Refer to the processor generic guide */
+uint32_t *pNVIC_IPRBase = (uint32_t*)0xE000E400;
+uint32_t *pNVIC_ISPRBase = (uint32_t*)0xE000E200;
+uint32_t *pNVIC_ISERBase = (uint32_t*)0xE000E100;
+
+
+
+
+
+void configurePriorityIRQ(uint8_t IRQNUM,uint8_t priority_num)
+{
+	//1. find out iprx
+	uint8_t iprx = IRQNUM/4;
+	uint32_t *ipr = pNVIC_IPRBase+iprx;
+
+	//2. position in iprx
+	uint8_t pos = (IRQNUM%4)*8;
+
+	//3. configure the priority
+	*ipr &= ~(0xFF << pos);//clear
+	*ipr |= (priority_num<<pos);
+
+}
+
+void setISPR(IRQNUM)
+{
+	uint8_t step = IRQNUM/32;
+	uint8_t pos = IRQNUM%32;
+
+	*(pNVIC_ISPRBase+step) |= (1<<pos);
+}
+void enableISER(IRQNUM)
+{
+	uint8_t step = IRQNUM/32;
+	uint8_t pos = IRQNUM%32;
+
+	*(pNVIC_ISERBase+step)|= (1<<pos);
+}
+
+int main(void)
+{
+	//1. configure the priority for the peripherals
+	configurePriorityIRQ(IRQNUM_USART1,0x90);
+	configurePriorityIRQ(IRQNUM_TIM3,0x80);
+
+	//2. Set the interrupt pending bit in the NVIC PR
+	setISPR(IRQNUM_USART1);
+	setISPR(IRQNUM_TIM3);
+
+	//3. Enable the IRQs in NVIC ISER
+	enableISER(IRQNUM_USART1);
+	enableISER(IRQNUM_TIM3);
+}
+
+void USART1_IRQHandler (void)
+{
+	printf("USART1 interruption!/n");
+}
+
+void TIM3_IRQHandler (void)
+{
+	printf("TIM3 interruption!/n");
+}
+
